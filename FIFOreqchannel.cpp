@@ -1,0 +1,42 @@
+#include "common.h"
+#include "FIFOreqchannel.h"
+
+FIFORequestChannel::FIFORequestChannel(const string _name, const Side _side) : RequestChannel(_name, _side){
+	
+	pipe1 = "fifo_" + my_name + "1";
+	pipe2 = "fifo_" + my_name + "2";
+		
+	if (_side == SERVER_SIDE){
+		wfd = open_pipe(pipe1, O_WRONLY);
+		rfd = open_pipe(pipe2, O_RDONLY);
+	}
+	else{
+		rfd = open_pipe(pipe1, O_RDONLY);
+		wfd = open_pipe(pipe2, O_WRONLY);
+	}
+}
+
+FIFORequestChannel::~FIFORequestChannel(){ 
+	close(wfd);
+	close(rfd);
+
+	remove(pipe1.c_str());
+	remove(pipe2.c_str());
+}
+
+int FIFORequestChannel::open_pipe(string _pipe_name, int mode){
+	mkfifo (_pipe_name.c_str (), 0600);
+	int fd = open(_pipe_name.c_str(), mode);
+	if (fd < 0){
+		EXITONERROR(_pipe_name);
+	}
+	return fd;
+}
+
+int FIFORequestChannel::cread(void* msgbuf, int bufcapacity){
+	return read (rfd, msgbuf, bufcapacity); 
+}
+
+int FIFORequestChannel::cwrite(void* msgbuf, int bufcapacity){
+	return write (wfd, msgbuf, bufcapacity);
+}
